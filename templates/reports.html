@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Analytics & Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">📈 Library Analytics</div>
+    <div class="page-header-sub">Insights from your library data</div>
+  </div>
+</div>
+
+<!-- Overdue Summary Cards -->
+<div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:24px;">
+  <div class="fine-card">
+    <div class="fine-amount">₹{{ total_fine }}</div>
+    <div class="fine-label">Total Outstanding Fines</div>
+    <div style="font-size:13px;color:var(--text-3);margin-top:8px;">₹2/day × all overdue days</div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div class="detail-label" style="margin-bottom:8px;">Current Overdue Count</div>
+    <div style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:var(--red);line-height:1;">{{ overdue_count }}</div>
+    <div style="font-size:13px;color:var(--text-3);margin-top:6px;">active overdue loan{{ 's' if overdue_count != 1 }}</div>
+    <a href="{{ url_for('overdue') }}" class="btn btn-danger btn-sm" style="margin-top:14px;">Manage Overdue →</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Most Borrowed Books -->
+  <div class="card">
+    <div class="card-title">📖 Most Borrowed Books (Top 10)</div>
+    {% set max_borrow = top_books[0].borrow_count if top_books else 1 %}
+    <ul class="bar-list">
+      {% for book in top_books %}
+      <li class="bar-item">
+        <div class="bar-rank">{{ loop.index }}</div>
+        <div class="bar-info">
+          <div class="bar-title">{{ book.title }}</div>
+          <div class="bar-sub">{{ book.author }}</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:{{ ((book.borrow_count / (max_borrow or 1)) * 100)|int }}%;"></div>
+        </div>
+        <div class="bar-count">{{ book.borrow_count }}</div>
+      </li>
+      {% else %}
+      <li style="color:var(--text-3);font-size:14px;padding:16px 0;">No data available.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Most Active Users -->
+  <div class="card">
+    <div class="card-title">👥 Most Active Members (Top 10)</div>
+    {% set max_loans = top_users[0].loan_count if top_users else 1 %}
+    <ul class="bar-list">
+      {% for user in top_users %}
+      <li class="bar-item">
+        <div class="bar-rank">{{ loop.index }}</div>
+        <div class="bar-info">
+          <div class="bar-title">{{ user.name }}</div>
+          <div class="bar-sub"><span class="badge badge-{{ user.role }}" style="font-size:10px;">{{ user.role }}</span></div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:{{ ((user.loan_count / (max_loans or 1)) * 100)|int }}%;"></div>
+        </div>
+        <div class="bar-count">{{ user.loan_count }}</div>
+      </li>
+      {% else %}
+      <li style="color:var(--text-3);font-size:14px;padding:16px 0;">No data available.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<!-- Monthly Statistics -->
+<div class="card" style="margin-top:20px;">
+  <div class="card-title">📅 Monthly Loan Statistics</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Total Loans</th>
+          <th>Returned</th>
+          <th>Overdue</th>
+          <th>Active / Other</th>
+          <th>Return Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in monthly_stats %}
+        {% set active_other = row.total - row.returned - row.overdue_count %}
+        <tr>
+          <td class="text-main">{{ row.month }}</td>
+          <td style="color:var(--accent-2);font-weight:600;">{{ row.total }}</td>
+          <td><span style="color:var(--blue);">{{ row.returned }}</span></td>
+          <td><span style="color:var(--red);">{{ row.overdue_count }}</span></td>
+          <td style="color:var(--text-3);">{{ active_other }}</td>
+          <td>
+            {% set rate = ((row.returned / row.total) * 100)|int if row.total > 0 else 0 %}
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;height:6px;background:var(--bg-input);border-radius:3px;overflow:hidden;min-width:60px;">
+                <div style="width:{{ rate }}%;height:100%;background:linear-gradient(90deg,var(--accent-3),var(--accent));border-radius:3px;"></div>
+              </div>
+              <span style="font-size:12px;color:var(--text-2);width:36px;text-align:right;">{{ rate }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="empty-state">
+            <span class="empty-icon">📊</span>No loan data available.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

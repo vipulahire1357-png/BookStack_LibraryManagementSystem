@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}BookStack{% endblock %} — Library Management</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">📚</span>
+    <span class="brand-title">BookStack</span>
+    <span class="brand-sub">Library Management System</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+      <span class="nav-icon">📊</span><span>Dashboard</span>
+    </a>
+
+    <div class="nav-section-label">Catalogue</div>
+    <a href="{{ url_for('books') }}" class="nav-link {% if request.endpoint == 'books' %}active{% endif %}">
+      <span class="nav-icon">📖</span><span>Books</span>
+    </a>
+    {% if session.get('role') == 'librarian' %}
+    <a href="{{ url_for('users') }}" class="nav-link {% if request.endpoint in ('users','user_detail') %}active{% endif %}">
+      <span class="nav-icon">👥</span><span>Users</span>
+    </a>
+    {% endif %}
+
+    <div class="nav-section-label">Circulation</div>
+    {% if session.get('role') == 'librarian' %}
+    <a href="{{ url_for('issue') }}" class="nav-link {% if request.endpoint == 'issue' %}active{% endif %}">
+      <span class="nav-icon">➕</span><span>Issue Book</span>
+    </a>
+    {% endif %}
+    <a href="{{ url_for('loans') }}" class="nav-link {% if request.endpoint in ('loans','loan_detail') %}active{% endif %}">
+      <span class="nav-icon">📦</span><span>{% if session.get('role') == 'librarian' %}All Loans{% else %}My Loans{% endif %}</span>
+    </a>
+
+    {% if session.get('role') == 'librarian' %}
+    <div class="nav-section-label">Management</div>
+    <a href="{{ url_for('overdue') }}" class="nav-link {% if request.endpoint == 'overdue' %}active{% endif %}">
+      <span class="nav-icon">⚠️</span><span>Overdue</span>
+    </a>
+    <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+      <span class="nav-icon">📈</span><span>Reports</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    {% if session.get('name') %}
+      <div style="margin-bottom:.4rem;">
+        <strong>{{ session.name }}</strong><br>
+        <span style="font-size:.75rem;opacity:.75;">{{ session.role | capitalize }}</span>
+      </div>
+      <a href="{{ url_for('logout') }}" style="color:#fff;opacity:.75;font-size:.8rem;text-decoration:none;">🚪 Logout</a>
+    {% else %}
+      DBMS Project · 2026<br>BookStack v1.0
+    {% endif %}
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrapper">
+  <header class="topbar">
+    <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="topbar-date" id="topbar-date"></div>
+      {% if session.get('name') %}
+      <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-2);">
+        <span style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;">{{ session.name[0] }}</span>
+        <span><strong style="color:var(--text);">{{ session.name }}</strong> &middot; {{ session.role | capitalize }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="content">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              {% if category == 'success' %}✓{% elif category == 'error' %}✕{% else %}ℹ{% endif %}
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script>
+  // Live date in topbar
+  const d = new Date();
+  document.getElementById('topbar-date').textContent =
+    d.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

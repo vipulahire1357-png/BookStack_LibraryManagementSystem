@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Issue Book{% endblock %}
+{% block page_title %}Issue Book{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">➕ Issue a Book</div>
+    <div class="page-header-sub">{{ books|length }} book{{ 's' if books|length != 1 }} currently available</div>
+  </div>
+</div>
+
+<div class="grid-sidebar">
+  <!-- Issue Form -->
+  <div class="card">
+    <div class="card-title">📋 Issue Form</div>
+    <form method="POST">
+      <div class="form-group">
+        <label>Select Member *</label>
+        <select name="user_id" required>
+          <option value="">— Select a User —</option>
+          {% for user in users %}
+          <option value="{{ user.user_id }}">{{ user.name }} ({{ user.role }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Select Book *</label>
+        <select name="book_id" required id="book-select">
+          <option value="">— Select a Book —</option>
+          {% for book in books %}
+          <option value="{{ book.book_id }}" data-avail="{{ book.available_copies }}" data-total="{{ book.total_copies }}" data-genre="{{ book.genre or '' }}">
+            {{ book.title }} — {{ book.author }} [{{ book.available_copies }}/{{ book.total_copies }}]
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Book preview -->
+      <div id="book-preview" style="display:none;background:var(--bg-input);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+        <div style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Selected Book</div>
+        <div id="preview-title" style="color:var(--text);font-weight:600;margin-bottom:4px;"></div>
+        <div id="preview-meta" style="font-size:12px;color:var(--text-3);"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Due Date *</label>
+        <input type="date" name="due_date" required value="{{ default_due }}" min="{{ default_due }}">
+        <div style="font-size:12px;color:var(--text-3);margin-top:4px;">Default: 14 days from today</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;">
+        📦 Issue Book
+      </button>
+    </form>
+  </div>
+
+  <!-- Info Panel -->
+  <div>
+    <div class="card">
+      <div class="card-title">📌 Guidelines</div>
+      <div style="color:var(--text-2);font-size:14px;line-height:1.8;">
+        <div style="margin-bottom:10px;">📅 <strong>Standard loan period:</strong> 14 days</div>
+        <div style="margin-bottom:10px;">💰 <strong>Late fine:</strong> ₹2 per overdue day</div>
+        <div style="margin-bottom:10px;">📦 <strong>Max books:</strong> No limit per user</div>
+        <div style="margin-bottom:10px;">⚠️ Only books with available copies can be issued</div>
+      </div>
+      <hr class="divider">
+      <div style="font-size:13px;color:var(--text-3);">
+        Currently <strong style="color:var(--accent-2);">{{ books|length }}</strong> books available for issue.
+      </div>
+    </div>
+
+    {% if not books %}
+    <div class="alert-panel" style="margin-top:16px;">
+      <div class="alert-panel-title">⚠️ No Available Books</div>
+      <div style="font-size:13px;color:var(--text-2);">All books are currently on loan. Wait for returns or add new copies.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sel = document.getElementById('book-select');
+sel.addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  const preview = document.getElementById('book-preview');
+  if (this.value) {
+    document.getElementById('preview-title').textContent = opt.text.split(' — ')[0];
+    document.getElementById('preview-meta').textContent =
+      'Genre: ' + (opt.dataset.genre || 'Unknown') +
+      '  |  Copies: ' + opt.dataset.avail + ' / ' + opt.dataset.total + ' available';
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

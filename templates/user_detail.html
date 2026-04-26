@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ user.name }}{% endblock %}
+{% block page_title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">{{ user.name }}</div>
+    <div class="page-header-sub"><span class="badge badge-{{ user.role }}">{{ user.role }}</span></div>
+  </div>
+  <a href="{{ url_for('users') }}" class="btn btn-ghost">← Back to Users</a>
+</div>
+
+<div class="grid-sidebar">
+  <!-- Loan History -->
+  <div class="card">
+    <div class="card-title">📋 Loan History ({{ loan_history|length }})</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Book</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for loan in loan_history %}
+          <tr>
+            <td class="text-muted">#{{ loan.loan_id }}</td>
+            <td>
+              <a href="{{ url_for('loan_detail', loan_id=loan.loan_id) }}" style="color:var(--text);text-decoration:none;font-weight:500;">
+                {{ loan.title }}
+              </a>
+              <div style="font-size:12px;color:var(--text-3);">{{ loan.author }}</div>
+            </td>
+            <td class="text-muted">{{ loan.issue_date }}</td>
+            <td class="text-muted">{{ loan.due_date }}</td>
+            <td class="text-muted">{{ loan.return_date or '—' }}</td>
+            <td><span class="badge badge-{{ loan.status }}">{{ loan.status }}</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="empty-state">
+              <span class="empty-icon">📭</span>No loans on record.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- User Info -->
+  <div>
+    <div class="card">
+      <div class="card-title">👤 Member Info</div>
+      <div class="detail-field">
+        <div class="detail-label">Full Name</div>
+        <div class="detail-value">{{ user.name }}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Email</div>
+        <div class="detail-value" style="word-break:break-all;">{{ user.email }}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Phone</div>
+        <div class="detail-value">{{ user.phone or '—' }}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Role</div>
+        <div class="detail-value"><span class="badge badge-{{ user.role }}">{{ user.role }}</span></div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Member Since</div>
+        <div class="detail-value">{{ user.joined_date }}</div>
+      </div>
+      <hr class="divider">
+      <div class="detail-field">
+        <div class="detail-label">Total Loans</div>
+        <div class="detail-value" style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--accent-2);">{{ loan_history|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

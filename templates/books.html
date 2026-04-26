@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Books{% endblock %}
+{% block page_title %}Books{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">📖 Book Catalogue</div>
+    <div class="page-header-sub">{{ books|length }} book{{ 's' if books|length != 1 }} found</div>
+  </div>
+  {% if session.role == 'librarian' %}
+  <button class="btn btn-primary" onclick="toggleAddForm()">➕ Add New Book</button>
+  {% endif %}
+</div>
+
+<!-- Add Book Form (librarian only) -->
+{% if session.role == 'librarian' %}
+<div class="form-panel" id="add-form" style="display:none;">
+  <div class="modal-header">
+    <div class="modal-title">Add New Book</div>
+    <button class="modal-close" onclick="toggleAddForm()">✕</button>
+  </div>
+  <form method="POST">
+    <input type="hidden" name="action" value="add">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" name="title" required placeholder="Book title">
+      </div>
+      <div class="form-group">
+        <label>Author *</label>
+        <input type="text" name="author" required placeholder="Author name">
+      </div>
+      <div class="form-group">
+        <label>Genre</label>
+        <select name="genre">
+          <option value="">— Select Genre —</option>
+          <option>Fiction</option>
+          <option>Science</option>
+          <option>History</option>
+          <option>Technology</option>
+          <option>Biography</option>
+          <option>Philosophy</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ISBN</label>
+        <input type="text" name="isbn" placeholder="978-XXXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>Total Copies</label>
+        <input type="number" name="total_copies" value="1" min="1">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Book</button>
+    <button type="button" class="btn btn-ghost" onclick="toggleAddForm()" style="margin-left:8px;">Cancel</button>
+  </form>
+</div>
+{% endif %}
+
+<!-- Search Filter -->
+<div class="filter-bar">
+  <form method="GET" style="display:flex;gap:10px;flex:1;max-width:500px;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by title, author, or genre…">
+    <button type="submit" class="btn btn-ghost">🔍 Search</button>
+    {% if q %}
+    <a href="{{ url_for('books') }}" class="btn btn-ghost">✕ Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Books Table -->
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Genre</th>
+          <th>ISBN</th>
+          <th>Availability</th>
+          <th>Added</th>
+          {% if session.role == 'librarian' %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for book in books %}
+        <tr>
+          <td class="text-main">{{ book.title }}</td>
+          <td>{{ book.author }}</td>
+          <td>
+            {% if book.genre %}
+            <span style="color:var(--accent);font-size:12px;font-weight:500;">{{ book.genre }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td><span style="font-family:monospace;font-size:12px;color:var(--text-3);">{{ book.isbn or '—' }}</span></td>
+          <td>
+            {% set avail = book.available_copies %}
+            {% set total = book.total_copies %}
+            {% if avail == 0 %}
+              <span class="avail-pill avail-out">0 / {{ total }} out</span>
+            {% elif avail <= (total * 0.3)|int %}
+              <span class="avail-pill avail-low">{{ avail }} / {{ total }} low</span>
+            {% else %}
+              <span class="avail-pill avail-ok">{{ avail }} / {{ total }}</span>
+            {% endif %}
+          </td>
+          <td class="text-muted">{{ book.added_date }}</td>
+          {% if session.role == 'librarian' %}
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-ghost btn-xs" onclick="openEdit({{ book.book_id }}, '{{ book.title|replace("'","\\'")|e }}', '{{ book.author|replace("'","\\'")|e }}', '{{ book.genre or '' }}', '{{ book.isbn or '' }}', {{ book.total_copies }})">✏️ Edit</button>
+              <form method="POST" onsubmit="return confirm('Delete this book?');" style="display:inline;">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="book_id" value="{{ book.book_id }}">
+                <button type="submit" class="btn btn-danger btn-xs">🗑</button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{% if session.role == 'librarian' %}7{% else %}6{% endif %}" class="empty-state">
+            <span class="empty-icon">📭</span>
+            No books found{% if q %} for "{{ q }}"{% endif %}.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit Modal (librarian only) -->
+{% if session.role == 'librarian' %}
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Book</div>
+      <button class="modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <form method="POST" id="edit-form">
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" name="book_id" id="edit-book-id">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" name="title" id="edit-title" required>
+      </div>
+      <div class="form-group">
+        <label>Author *</label>
+        <input type="text" name="author" id="edit-author" required>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Genre</label>
+          <select name="genre" id="edit-genre">
+            <option value="">— Select Genre —</option>
+            <option>Fiction</option>
+            <option>Science</option>
+            <option>History</option>
+            <option>Technology</option>
+            <option>Biography</option>
+            <option>Philosophy</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ISBN</label>
+          <input type="text" name="isbn" id="edit-isbn">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Total Copies</label>
+        <input type="number" name="total_copies" id="edit-copies" min="1">
+      </div>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <button type="button" class="btn btn-ghost" onclick="closeEdit()" style="margin-left:8px;">Cancel</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if session.role == 'librarian' %}
+<script>
+function toggleAddForm() {
+  const f = document.getElementById('add-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+function openEdit(id, title, author, genre, isbn, copies) {
+  document.getElementById('edit-book-id').value = id;
+  document.getElementById('edit-title').value = title;
+  document.getElementById('edit-author').value = author;
+  document.getElementById('edit-isbn').value = isbn;
+  document.getElementById('edit-copies').value = copies;
+  const sel = document.getElementById('edit-genre');
+  for (let opt of sel.options) { opt.selected = opt.value === genre; }
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEdit() {
+  document.getElementById('edit-modal').classList.remove('open');
+}
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEdit();
+});
+</script>
+{% endif %}
+{% endblock %}

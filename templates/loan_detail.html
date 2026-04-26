@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Loan #{{ loan.loan_id }}{% endblock %}
+{% block page_title %}Loan Detail{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">📄 Loan #{{ loan.loan_id }}</div>
+    <div class="page-header-sub">
+      <span class="badge badge-{{ loan.status }}">{{ loan.status }}</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    {% if session.role == 'librarian' and loan.status in ('active', 'overdue') %}
+    <form method="POST" onsubmit="return confirm('Mark this loan as returned?');">
+      <button type="submit" class="btn btn-success">✓ Mark as Returned</button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('loans') }}" class="btn btn-ghost">← All Loans</a>
+  </div>
+</div>
+
+{% if loan.status == 'overdue' %}
+<div class="alert-panel" style="margin-bottom:20px;">
+  <div class="alert-panel-title">⚠️ Overdue Notice</div>
+  <div style="font-size:14px;color:var(--text-2);">
+    This loan is <strong style="color:var(--red);">{{ days_overdue }} day{{ 's' if days_overdue != 1 }}</strong> overdue.
+    Fine accumulated: <strong style="color:var(--red);">₹{{ days_overdue * 2 }}</strong>
+    (₹2/day × {{ days_overdue }} days)
+  </div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+  <!-- Book Info -->
+  <div class="card">
+    <div class="card-title">📖 Book Information</div>
+    <div class="detail-field">
+      <div class="detail-label">Title</div>
+      <div class="detail-value" style="font-family:'Playfair Display',serif;font-size:18px;">{{ loan.title }}</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Author</div>
+      <div class="detail-value">{{ loan.author }}</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Genre</div>
+      <div class="detail-value">{{ loan.genre or '—' }}</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">ISBN</div>
+      <div class="detail-value" style="font-family:monospace;">{{ loan.isbn or '—' }}</div>
+    </div>
+  </div>
+
+  <!-- Borrower Info -->
+  <div class="card">
+    <div class="card-title">👤 Borrower Information</div>
+    <div class="detail-field">
+      <div class="detail-label">Name</div>
+      <div class="detail-value">{{ loan.user_name }}</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Email</div>
+      <div class="detail-value">{{ loan.email }}</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Phone</div>
+      <div class="detail-value">{{ loan.phone or '—' }}</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Role</div>
+      <div class="detail-value"><span class="badge badge-{{ loan.role }}">{{ loan.role }}</span></div>
+    </div>
+  </div>
+
+  <!-- Loan Timeline -->
+  <div class="card">
+    <div class="card-title">📅 Loan Timeline</div>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <div class="detail-label">Issue Date</div>
+        <div class="detail-value">{{ loan.issue_date }}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Due Date</div>
+        <div class="detail-value" style="color:{% if loan.status == 'overdue' %}var(--red){% else %}inherit{% endif %};">
+          {{ loan.due_date }}
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Return Date</div>
+        <div class="detail-value" style="color:{% if loan.return_date %}var(--green){% else %}var(--text-3){% endif %};">
+          {{ loan.return_date or 'Not returned yet' }}
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Status</div>
+        <div class="detail-value"><span class="badge badge-{{ loan.status }}">{{ loan.status }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fine Info -->
+  <div class="card">
+    <div class="card-title">💰 Fine Information</div>
+    {% if loan.status == 'overdue' %}
+    <div class="fine-card">
+      <div class="fine-amount">₹{{ days_overdue * 2 }}</div>
+      <div class="fine-label">Total Fine (₹2 × {{ days_overdue }} days)</div>
+    </div>
+    {% elif loan.status == 'returned' %}
+    <div style="text-align:center;padding:20px;color:var(--green);">
+      <div style="font-size:32px;margin-bottom:8px;">✓</div>
+      <div style="font-weight:600;">Returned — No fine</div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:20px;color:var(--text-3);">
+      <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+      <div style="font-size:14px;">Loan is active, no fine yet.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
